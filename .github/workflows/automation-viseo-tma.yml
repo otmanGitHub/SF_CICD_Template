@@ -1,43 +1,20 @@
-# afficher dossier changed-sources pour debug
-# - name: 'List Apex files to scan'
-#   run: tree -L 10 changed-sources/
-
-# Display generated apex code file for debug
-# - name: 'Display AccountController.cls file content and js file content'
-#   run: |
-#       cat changed-sources/force-app/main/default/classes/AccountController.cls
-#       cat changed-sources/force-app/main/default/classes/AccountControllerTest.cls
-
-# display full directory tree for debug
-# - name: 'Display complete directory tree'
-#   run: |
-#     sudo apt-get install -y tree
-#     tree -L 10 /home/runner/work/
-
 name: Validate PR on develop branch
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 
 # Definition when the workflow should run
 on:
-    # The workflow will run whenever an event happens on a pull request
     pull_request:
         # The events are that a PR is opened, or when a commit is pushed
-        # to a branch that has an existing pull request
         types: [opened, synchronize]
         # The branches filter allows to specify that this workflow should only
-        # run if the branch name is "develop". This way we prevent this workflow
-        # from running when PRs are opened on other branches
         # branches: [ feature/** ]
-        # We only care about changes to the force-app directory, which is the
-        # root directory of the sfdx project. This prevents the job from running
-        # when changing non-salesforce files (like this yml file).
+        # Trigger the pipeline only when changes are made in specific paths
         paths:
         # - 'force-app/**'
 
 jobs:
   validate-pmd:
-
-        # Surcharge les permissions par défaut pour CE workflow (sarif upload required security-events write)
+        # Add write permission to security-events to be able to upload sarif file
         permissions:
           contents: read
           security-events: write
@@ -47,40 +24,29 @@ jobs:
         if: ${{ github.actor != 'dependabot[bot]' }}
         steps:
         # ___________________________________________START PACKAGES INSTALLATION_________________________________________________
-        # Now we install nodejs in the VM, and specify version 18
         - name: installing node version
           uses: actions/setup-node@v5
           with:
             node-version: '22'
 
-        # Installing checkout, fetch depth 0 to see all commits
         - name: 'Checkout source code'
           uses: actions/checkout@v5
           with:
             fetch-depth: 0
 
-        # Now Install Salesforce CLI
-        # wget allows to download files from internet
-        # mkdir allows to create a directory
-        # tar allows to extract compressed files, -C allows to specify the destination directory, --strip-components 1 allows to remove the 
-        # first directory level during extraction
-        # echo "$HOME/sfdx/bin" >> $GITHUB_PATH allows to add the sfdx bin directory to the environment PATH, to be able to use the sfdx command
-        # ~/sfdx/bin/sfdx version allows to verify that sfdx is properly installed by displaying the version
         - name: 'Install Salesforce CLI'
           run: |
             npm install -g @salesforce/cli@2.108.6
             sf version
 
         # Then we install the SFDX-Git-Delta plugin
-        # echo y | allows to answer "yes" to all questions asked by the following command but it's better to use --force
-        # sfdx plugins:install sfdx-git-delta allows to install the sfdx-git-delta plugin
-        # sfdx plugins allows to verify that the plugin is properly installed by displaying the list of installed plugins
+        # echo y | allows to answer "yes" to all questions asked by the following
         - name: 'Installing sfdx git delta'
           run: |
               echo y | sf plugins install sfdx-git-delta@6.22.0
               sf plugins
 
-        # Install java as it is required for the next step
+        # Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
         - name: 'Installing java'
           run: |
@@ -91,13 +57,13 @@ jobs:
         - name: 'Installing SFDX scanner'
           run: echo y | sf plugins install @salesforce/plugin-code-analyzer@5.5.0
 
-        # ___________________________________________END PACKAGES INSTALLATION_________________________________________________
+        # installer flow analyzer et tester
 
-        # Connecting to INTEGRATION SANDBOX
-        # The URL is stored in the Github Secret named SFDX_INTEGRATION_URL
-        # so here we store the URL into a text file
+        # ___________________________________________START JOBS EXECUTIONS_________________________________________________
+
+        # TWe load SFDX_INTEGRATION_URL store in the repository secrets variable, the url can be genereated using sf org display --verbose
+        # After being loaded, it is stored in a text file that will be used to authenticate to the integration org
         - name: 'Populate auth file with SFDX_URL secret of integration org'
-          shell: bash
           run: |
               echo ${{ secrets.SFDX_INTEGRATION_URL}} > ./SFDX_INTEGRATION_URL.txt
           
@@ -106,17 +72,12 @@ jobs:
           run: sf org login sfdx-url --sfdx-url-file ./SFDX_INTEGRATION_URL.txt --set-default --alias integration
 
         # This command generates a delta between the SHA of the head of the PR feature and the SHA of the HEAD of the target branch of the PR
+        # 
         - name: 'Create delta packages for new, modified or deleted metadata'
           run: | 
             mkdir changed-sources
             sf sgd source delta --to "HEAD" --from "${{github.event.pull_request.base.sha}}" --output-dir changed-sources/ --generate-delta --source-dir force-app/
             echo 'delta package generated ! between PR HEAD SHA1 :${{github.event.pull_request.head.sha}} and PR Target Branch SHA1 :${{github.event.pull_request.base.sha}}'
-
-        # Display the content of the changed-sources directory for debug
-        - name: 'Display changed-sources directory content'
-          run: |
-              echo "Changed sources directory content:"
-              ls -R changed-sources/
           
         # This step add in the changed-sources/force-app/main/default/classes/ all the apex classes that have the "Test" suffix of a modified apex test
         - name: 'Add modified apex test classes to deployment package'
@@ -137,37 +98,50 @@ jobs:
               fi
             done
 
-        # display full directory tree for debug
-        - name: 'Display complete directory tree'
-          run: |
-            sudo apt-get install -y tree
-            tree -L 10 /home/runner/work/
-
-        # The .sarif file can later be uploaded to github, so that we can see the 
-        # results of the scan directly from the PR.
+        # The .sarif file can later be uploaded to github, so that we can see the results of the scan directly from the PR.
         - name: '@Salesforce/plugin-code-analyzer run all default rule'
           run: |
               sf code-analyzer run --rule-selector pmd --rule-selector eslint --target 'changed-sources/**/*' --output-file 'pmdScanResults.sarif.json'
               
-        # display sarif file content for debug
-        - name: 'Display SARIF file content'
-          run: |
-              cat pmdScanResults.sarif.json
-
-        # Now we upload the .sarif file as explained in the previous step
+        # It is not possible to upload a sarif file in a private repository, is is only possible to upldate .csv or .json files.
         - name: Upload SARIF file
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: pmdScanResults.sarif.json
 
-        # We do a check-only deploy and we only run the tests specified in the PR
-        # If the env variable does not equal 'all', we know that there is a list of
-        # tests that can be run
-
+        # We do a check-only deploy and we only run the tests specified in the PR 
+        # Now we validate every rules of the PMD and EsLint engines
         - name: 'Check conf and tests on changed sources folder'
           run: |
               sf project deploy start --source-dir changed-sources/force-app --dry-run --test-level RunLocalTests
 
-        # - name: 'Deploy destructive changes (if any)'
+        # /! Not implemented yet !\
+        # - name: 'Deploy destructive changes (if any)' => Not implemented yet
         #   run: sfdx force:mdapi:deploy -d "changed-sources/destructiveChanges" --checkonly --ignorewarnings 
 
+#_________________________________________HELP DEBUG COMMANDS _________________________________________________
+
+# Display generated apex code file for debug
+# - name: 'Display AccountController.cls file content and js file content'
+#   run: |
+#       cat changed-sources/force-app/main/default/classes/AccountController.cls
+#       cat changed-sources/force-app/main/default/classes/AccountControllerTest.cls
+
+
+# Display the content of the changed-sources directory recurcively for debug
+# - name: 'Display changed-sources directory content'
+#   run: |
+#       echo "Changed sources directory content:"
+#       ls -R changed-sources/
+
+
+# display full directory tree for debug
+# - name: 'Display complete directory tree'
+#   run: |
+#     sudo apt-get install -y tree
+#     tree -L 10 /home/runner/work/
+
+# display sarif file content for debug
+# - name: 'Display SARIF file content'
+#   run: |
+#       cat pmdScanResults.sarif.json
