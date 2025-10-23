@@ -1,0 +1,39 @@
+<aura:component implements="flexipage:availableForAllPageTypes" controller="AccountController">
+    <aura:attribute name="accounts" type="Account[]"/>
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+
+    <!--
+        pmd rule AvoidHardCodedCredentials High(2) violation 
+        https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/rules-pmd-appexchange.html#avoidhardcodedcredentialsinaura
+    -->
+    <aura:attribute name="password" type="string" default="123456890"/>
+    <aura:attribute name="apikey" type="string" default="123456890"/>
+    <aura:attribute name="authtoken" type="string" default="123456890"/>
+    
+    <lightning:card title="Comptes (Aura)">
+        <aura:if isTrue="{!v.accounts.length > 0}">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">Nom</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Téléphone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <aura:iteration items="{!v.accounts}" var="account">
+                        <tr>
+                            <td>{!account.Name}</td>
+                            <td>{!account.Type}</td>
+                            <td>{!account.Phone}</td>
+                        </tr>
+                    </aura:iteration>
+                </tbody>
+            </table>
+            <aura:set attribute="else">
+                <p>Aucun compte trouvé.</p>
+            </aura:set>
+        </aura:if>
+    </lightning:card>
+</aura:component> 

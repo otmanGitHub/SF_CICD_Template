@@ -1,0 +1,45 @@
+<template>
+    <lightning-card title="Liste des Cases">
+        <template if:true={cases}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">
+                            <div class="slds-truncate" title="Numéro">Numéro</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Sujet">Sujet</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Statut">Statut</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Compte">Compte</div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={cases} for:item="caseRecord">
+                        <tr key={caseRecord.Id} class="slds-hint-parent">
+                            <td>
+                                <div class="slds-truncate" title={caseRecord.CaseNumber}>{caseRecord.CaseNumber}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={caseRecord.Subject}>{caseRecord.Subject}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={caseRecord.Status}>{caseRecord.Status}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={caseRecord.Account.Name}>{caseRecord.Account.Name}</div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
+        <template if:false={cases}>
+            <p>Aucune case trouvée.</p>
+        </template>
+    </lightning-card>
+</template>

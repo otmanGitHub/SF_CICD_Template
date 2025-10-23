@@ -1,0 +1,4 @@
+*sfdx/
+*vscode/
+package-lock.json
+jsconfig.json

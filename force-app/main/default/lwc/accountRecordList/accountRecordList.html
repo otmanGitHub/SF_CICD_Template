@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="Liste des Comptes">
+        <template if:true={accounts}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">
+                            <div class="slds-truncate" title="Nom">Nom</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Type">Type</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Téléphone">Téléphone</div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={accounts} for:item="account">
+                        <tr key={account.Id} class="slds-hint-parent">
+                            <td>
+                                <div class="slds-truncate" title={account.Name}>{account.Name}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={account.Type}>{account.Type}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={account.Phone}>{account.Phone}</div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
+        <template if:false={accounts}>
+            <p>Aucun compte trouvé.</p>
+        </template>
+    </lightning-card>
+    
+</template>

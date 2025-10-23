@@ -1,0 +1,33 @@
+<aura:component implements="flexipage:availableForAllPageTypes" controller="CaseController">
+    <aura:attribute name="cases" type="Case[]"/>
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+    <lightning:card title="Cases (Aura)">
+        <aura:if isTrue="{!v.cases.length > 0}">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">Numéro</th>
+                        <th scope="col">Sujet</th>
+                        <th scope="col">Statut</th>
+                        <th scope="col">Compte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <aura:iteration items="{!v.cases}" var="caseRecord">
+                        <tr>
+                            <td>{!caseRecord.CaseNumber}</td>
+                            <td>{!caseRecord.Subject}</td>
+                            <td>{!caseRecord.Status}</td>
+                            <td>{!caseRecord.Account.Name}</td>
+                        </tr>
+                    </aura:iteration>
+                </tbody>
+            </table>
+            <aura:set attribute="else">
+                <p>Aucune case trouvée.</p>
+            </aura:set>
+        </aura:if>
+    </lightning:card>
+</aura:component>

@@ -1,0 +1,33 @@
+<aura:component implements="flexipage:availableForAllPageTypes" controller="ContactController">
+    <aura:attribute name="contacts" type="Contact[]"/>
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+    <lightning:card title="Contacts (Aura)">
+        <aura:if isTrue="{!v.contacts.length > 0}">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">Nom</th>
+                        <th scope="col">Prénom</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Compte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <aura:iteration items="{!v.contacts}" var="contact">
+                        <tr>
+                            <td>{!contact.LastName}</td>
+                            <td>{!contact.FirstName}</td>
+                            <td>{!contact.Email}</td>
+                            <td>{!contact.Account.Name}</td>
+                        </tr>
+                    </aura:iteration>
+                </tbody>
+            </table>
+            <aura:set attribute="else">
+                <p>Aucun contact trouvé.</p>
+            </aura:set>
+        </aura:if>
+    </lightning:card>
+</aura:component>

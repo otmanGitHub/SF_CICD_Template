@@ -1,0 +1,45 @@
+<template>
+    <lightning-card title="Liste des Contacts">
+        <template if:true={contacts}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">
+                            <div class="slds-truncate" title="Nom">Nom</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Prénom">Prénom</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Email">Email</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Compte">Compte</div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={contacts} for:item="contact">
+                        <tr key={contact.Id} class="slds-hint-parent">
+                            <td>
+                                <div class="slds-truncate" title={contact.LastName}>{contact.LastName}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={contact.FirstName}>{contact.FirstName}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={contact.Email}>{contact.Email}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={contact.Account.Name}>{contact.Account.Name}</div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
+        <template if:false={contacts}>
+            <p>Aucun contact trouvé.</p>
+        </template>
+    </lightning-card>
+</template>
