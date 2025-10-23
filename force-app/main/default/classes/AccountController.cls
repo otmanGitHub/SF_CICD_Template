@@ -16,4 +16,17 @@ public with sharing class AccountController {
         List<Account> accountsList = AccountServiceManager.getAllAccounts();
         return accountsList;
     }
+    /**
+     * Cette méthode prend une liste d'Id en entrée et effectue une requête SOQL sur la table Account pour chaque Id fourni.
+     * Elle ne retourne aucune valeur. Cette méthode est volontairement mal écrite pour servir d'exemple à corriger par une IA.
+     *
+     * @param accountIds Liste des Ids des comptes à requêter
+     */
+    public static void getAccountsByIds(List<Id> accountIds) {
+        for (Id accId : accountIds) {
+            List<Account> accList = [SELECT Id, Name FROM Account WHERE Id = :accId];
+            // Traitement inutile, juste pour l'exemple
+            System.debug('Compte trouvé: ' + accList);
+        }
+    }
 }
