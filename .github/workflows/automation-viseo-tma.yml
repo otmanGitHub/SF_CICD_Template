@@ -39,12 +39,15 @@ jobs:
             npm install -g @salesforce/cli@2.108.6
             sf version
 
-        # Java is required to run the SFDX code analyzer
+        # Installing Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
+        # Installing gh is required to be able to post comments on the PR
         - name: 'Installing java'
           run: |
             sudo apt-get update
             sudo apt install default-jdk
+            sudo apt-get install gh
+
 
         # Install required plugins
         - name: 'Installing SFDX scanner'
@@ -54,8 +57,7 @@ jobs:
             echo y | sf plugins install lightning-flow-scanner@5.7.2
             sf plugins
 
-        # ___________________________________________START JOBS EXECUTIONS_________________________________________________
-
+        # ___________________________________________AUTHENTICATIONS _________________________________________________
         # TWe load SFDX_INTEGRATION_URL store in the repository secrets variable, the url can be genereated using sf org display --verbose
         # After being loaded, it is stored in a text file that will be used to authenticate to the integration org
         - name: 'Populate auth file with SFDX_URL secret of integration org'
@@ -65,6 +67,13 @@ jobs:
         # Authenticate to org using the URL stored in the text file
         - name: 'Authenticate to Integration Org'
           run: sf org login sfdx-url --sfdx-url-file ./SFDX_INTEGRATION_URL.txt --set-default --alias integration
+
+        # Authenticate gh client to be able to post comments on the PR; secrets.GITHUB_TOKEN is automatically created by github for each workflow
+        - name: 'Authenticate gh client'
+          run: gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
+
+        # ___________________________________________START JOBS EXECUTIONS_________________________________________________
+
 
         # This command generates a delta between the SHA of the head of the PR feature and the SHA of the HEAD of the target branch of the PR
         # 
@@ -109,8 +118,12 @@ jobs:
           run: |
               sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_result.txt
 
+        
+
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
+          run: |
+              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none--body "$(cat lightning-flow-scan_result.txt)"
 
         # We do a check-only deploy and we only run the tests specified in the PR 
         # Now we validate every rules of the PMD and EsLint engines
