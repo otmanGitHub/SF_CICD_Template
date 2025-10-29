@@ -70,7 +70,7 @@ jobs:
 
         # Authenticate gh client to be able to post comments on the PR; secrets.GITHUB_TOKEN is automatically created by github for each workflow
         - name: 'Authenticate gh client'
-          run: gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
+          run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
         # ___________________________________________START JOBS EXECUTIONS_________________________________________________
 
