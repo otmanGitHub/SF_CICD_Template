@@ -39,13 +39,6 @@ jobs:
             npm install -g @salesforce/cli@2.108.6
             sf version
 
-        # Then we install the SFDX-Git-Delta plugin
-        # echo y | allows to answer "yes" to all questions asked by the following
-        - name: 'Installing sfdx git delta'
-          run: |
-              echo y | sf plugins install sfdx-git-delta@6.22.0
-              sf plugins
-
         # Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
         - name: 'Installing java'
@@ -53,11 +46,13 @@ jobs:
             sudo apt-get update
             sudo apt install default-jdk
 
-        # Install SFDX scanner
+        # Install required plugins
         - name: 'Installing SFDX scanner'
-          run: echo y | sf plugins install @salesforce/plugin-code-analyzer@5.5.0
-
-        # installer flow analyzer et tester
+          run: |
+            echo y | sf plugins install @salesforce/plugin-code-analyzer@5.5.0
+            echo y | sf plugins install sfdx-git-delta@6.22.0
+            echo y | sf plugins install lightning-flow-scanner@5.7.2
+            sf plugins
 
         # ___________________________________________START JOBS EXECUTIONS_________________________________________________
 
@@ -108,6 +103,14 @@ jobs:
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: pmdScanResults.sarif.json
+
+        # generate flow scan report in text format
+        - name: 'Run Flow Scanner on changed flows'
+          run: |
+              sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_result.txt
+
+        # import the flow scan report as a PR comment
+        - name: 'Comment flow scan result on PR'
 
         # We do a check-only deploy and we only run the tests specified in the PR 
         # Now we validate every rules of the PMD and EsLint engines
