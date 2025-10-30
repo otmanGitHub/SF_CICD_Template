@@ -71,7 +71,7 @@ jobs:
         # Authenticate gh client to be able to post comments on the PR; secrets.GITHUB_TOKEN is automatically created by github for each workflow
         - name: 'Authenticate gh client'
           run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          
+
         # ___________________________________________START JOBS EXECUTIONS_________________________________________________
 
         # This command generates a delta between the SHA of the head of the PR feature and the SHA of the HEAD of the target branch of the PR
@@ -148,7 +148,6 @@ jobs:
 #   run: |
 #       echo "Changed sources directory content:"
 #       ls -R changed-sources/
-
 
 # display full directory tree for debug
 # - name: 'Display complete directory tree'
