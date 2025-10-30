@@ -105,7 +105,22 @@ jobs:
         - name: '@Salesforce/plugin-code-analyzer run all default rule'
           run: |
               sf code-analyzer run --rule-selector pmd --rule-selector eslint --target 'changed-sources/**/*' --output-file 'pmdScanResults.sarif.json'
-              
+        
+        # DEBUG #
+        # display full directory tree for debug
+        - name: 'Display complete directory tree'
+          run: |
+            sudo apt-get install -y tree
+            tree -L 10 /home/runner/work/
+
+        # display sarif file content for debug
+        - name: 'Display SARIF file content'
+          run: |
+              cat pmdScanResults.sarif.json
+
+        # DEBUG #
+
+
         # It is not possible to upload a sarif file in a private repository, is is only possible to upldate .csv or .json files.
         - name: Upload SARIF file
           uses: github/codeql-action/upload-sarif@v3
@@ -116,8 +131,6 @@ jobs:
         - name: 'Run Flow Scanner on changed flows'
           run: |
               sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_result.txt
-
-        
 
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
