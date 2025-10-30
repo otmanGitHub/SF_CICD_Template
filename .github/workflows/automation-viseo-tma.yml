@@ -120,12 +120,17 @@ jobs:
 
         # DEBUG #
 
-
-        # It is not possible to upload a sarif file in a private repository, is is only possible to upldate .csv or .json files.
         - name: Upload SARIF file
+          if: "!contains(fromJson(file('pmdScanResults.sarif.json')).runs, [])"
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: pmdScanResults.sarif.json
+
+        # It is not possible to upload a sarif file in a private repository, is is only possible to upldate .csv or .json files.
+        # - name: Upload SARIF file
+        #   uses: github/codeql-action/upload-sarif@v3
+        #   with:
+        #     sarif_file: pmdScanResults.sarif.json
 
         # generate flow scan report in text format
         - name: 'Run Flow Scanner on changed flows'
