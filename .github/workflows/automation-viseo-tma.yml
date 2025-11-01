@@ -13,7 +13,7 @@ on:
         # - 'force-app/**'
 
 jobs:
-  validate-pmd:
+    github-ci-validation:
         # Add write permission to security-events to be able to upload sarif file
         # contents read permission is required to read the repository code
         # security-events write permission is required to upload sarif file
@@ -49,6 +49,7 @@ jobs:
           run: |
             sudo apt-get update
             sudo apt install default-jdk
+            sudo apt-get install -y colo
 
         # Install required plugins
         - name: 'Installing SF plugings: code-analyzer, sfdx-git-delta, lightning-flow-scanner'
@@ -142,13 +143,14 @@ jobs:
         # generate flow scan report in text format
         - name: 'Run Flow Scanner on changed flows'
           run: |
-              sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_result.txt || true
-              cat lightning-flow-scan_result.txt
+              sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_ansiResult.txt || true
+              sed 's/\x1b\[[0-9;]*m//g' lightning-flow-scan_ansiResult.txt > lightning-flow-scan_result_cleanResult.txt
+              echo 'cat clean file => ' && cat lightning-flow-scan_result_clean.txt
 
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
           run: |
-              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "$(cat lightning-flow-scan_result.txt)"
+              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "$(cat lightning-flow-scan_result_cleanResult.txt)"
 
         # We do a check-only deploy and we only run the tests specified in the PR 
         # Now we validate every rules of the PMD and EsLint engines
