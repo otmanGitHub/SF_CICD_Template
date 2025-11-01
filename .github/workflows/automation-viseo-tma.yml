@@ -145,7 +145,7 @@ jobs:
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
           run: |
-              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none--body "$(cat lightning-flow-scan_result.txt)"
+              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "$(cat lightning-flow-scan_result.txt)"
 
         # We do a check-only deploy and we only run the tests specified in the PR 
         # Now we validate every rules of the PMD and EsLint engines
