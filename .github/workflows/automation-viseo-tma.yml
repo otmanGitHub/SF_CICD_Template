@@ -49,7 +49,6 @@ jobs:
           run: |
             sudo apt-get update
             sudo apt install default-jdk
-            sudo apt-get install -y colo
 
         # Install required plugins
         - name: 'Installing SF plugings: code-analyzer, sfdx-git-delta, lightning-flow-scanner'
