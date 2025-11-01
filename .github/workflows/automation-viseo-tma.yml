@@ -41,13 +41,11 @@ jobs:
 
         # Installing Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
-        # Installing gh is NOT required to be able to post comments on the PR (preinstalled on github runners)
-        # Installing jq is required to parse sarif json file content
-        - name: 'Installing apts package (jdk, jq)'
+        # jq and gh are pre-installed on the ubuntu runners
+        - name: 'Installing JAVA with apt'
           run: |
             sudo apt-get update
             sudo apt install default-jdk
-            sudo apt-get install -y jq=1.7.1-3ubuntu0.24.04.1
 
         # Install required plugins
         - name: 'Installing SF plugings: code-analyzer, sfdx-git-delta, lightning-flow-scanner'
@@ -132,26 +130,17 @@ jobs:
                 echo 'Sarif file has runs, will be uploaded' 
               fi
 
-        - name: 'Debug uploadSarif output and display its type'
-          run: |
-              echo "uploadSarif=${{ steps.setUploadSarif.outputs.uploadSarif }}"
-
         - name: Upload SARIF file
           if: steps.setUploadSarif.outputs.uploadSarif == 'true'
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: pmdScanResults.sarif.json
 
-        # It is not possible to upload a sarif file in a private repository, is is only possible to upldate .csv or .json files.
-        # - name: Upload SARIF file
-        #   uses: github/codeql-action/upload-sarif@v3
-        #   with:
-        #     sarif_file: pmdScanResults.sarif.json
-
         # generate flow scan report in text format
         - name: 'Run Flow Scanner on changed flows'
           run: |
-              sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_result.txt
+              sf flow:scan --directory changed-sources/force-app/main/default/flows &> lightning-flow-scan_result.txt
+              cat lightning-flow-scan_result.txt
 
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
