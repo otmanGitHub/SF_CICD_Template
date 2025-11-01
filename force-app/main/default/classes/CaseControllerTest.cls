@@ -1,8 +1,10 @@
-@isTest
+@IsTest
 private class CaseControllerTest {
     
     @TestSetup
     static void setupTestData() {
+        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator' LIMIT 1];
+        System.runAs(adminUser) {
         Account testAccount = new Account(Name = 'Controller Test Account');
         insert testAccount;
         
@@ -21,15 +23,20 @@ private class CaseControllerTest {
             ContactId = testContact.Id
         );
         insert testCase;
+        }
     }
     
-    @isTest
+    @IsTest
     static void testGetAllCases() {
-        Test.startTest();
-        List<Case> cases = CaseController.getAllCases();
-        Test.stopTest();
-        
-        Assert.areEqual(1, cases.size(), 'Should return 1 case via controller');
-        Assert.areEqual('Controller Test Case', cases[0].Subject, 'Case subject should match');
+        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator' LIMIT 1];
+        System.runAs(adminUser) {
+            Test.startTest();
+            List<Case> cases = CaseController.getAllCases();
+            Test.stopTest();
+            
+            Assert.areEqual(1, cases.size(), 'Should return 1 case via controller');
+            Assert.areEqual('Controller Test Case', cases[0].Subject, 'Case subject should match');
+        }
+
     }
 }

@@ -13,12 +13,15 @@ on:
         # - 'force-app/**'
 
 jobs:
-  validate-pmd:
+    github-ci-validation:
         # Add write permission to security-events to be able to upload sarif file
+        # contents read permission is required to read the repository code
+        # security-events write permission is required to upload sarif file
+        # pull-requests write permission is required to post comments on the PR
         permissions:
           contents: read
           security-events: write
-          actions: read
+          pull-requests: write
 
         runs-on: ubuntu-24.04
         if: ${{ github.actor != 'dependabot[bot]' }}
@@ -39,28 +42,23 @@ jobs:
             npm install -g @salesforce/cli@2.108.6
             sf version
 
-        # Then we install the SFDX-Git-Delta plugin
-        # echo y | allows to answer "yes" to all questions asked by the following
-        - name: 'Installing sfdx git delta'
-          run: |
-              echo y | sf plugins install sfdx-git-delta@6.22.0
-              sf plugins
-
-        # Java is required to run the SFDX code analyzer
+        # Installing Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
-        - name: 'Installing java'
+        # jq and gh are pre-installed on the ubuntu runners
+        - name: 'Installing JAVA with apt'
           run: |
             sudo apt-get update
             sudo apt install default-jdk
 
-        # Install SFDX scanner
-        - name: 'Installing SFDX scanner'
-          run: echo y | sf plugins install @salesforce/plugin-code-analyzer@5.5.0
+        # Install required plugins
+        - name: 'Installing SF plugings: code-analyzer, sfdx-git-delta, lightning-flow-scanner'
+          run: |
+            echo y | sf plugins install @salesforce/plugin-code-analyzer@5.5.0
+            echo y | sf plugins install sfdx-git-delta@6.22.0
+            echo y | sf plugins install lightning-flow-scanner@5.7.2
+            sf plugins
 
-        # installer flow analyzer et tester
-
-        # ___________________________________________START JOBS EXECUTIONS_________________________________________________
-
+        # ___________________________________________AUTHENTICATIONS _________________________________________________
         # TWe load SFDX_INTEGRATION_URL store in the repository secrets variable, the url can be genereated using sf org display --verbose
         # After being loaded, it is stored in a text file that will be used to authenticate to the integration org
         - name: 'Populate auth file with SFDX_URL secret of integration org'
@@ -70,6 +68,12 @@ jobs:
         # Authenticate to org using the URL stored in the text file
         - name: 'Authenticate to Integration Org'
           run: sf org login sfdx-url --sfdx-url-file ./SFDX_INTEGRATION_URL.txt --set-default --alias integration
+
+        # Authenticate gh client to be able to post comments on the PR; secrets.GITHUB_TOKEN is automatically created by github for each workflow
+        - name: 'Authenticate gh client'
+          run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+        # ___________________________________________START JOBS EXECUTIONS_________________________________________________
 
         # This command generates a delta between the SHA of the head of the PR feature and the SHA of the HEAD of the target branch of the PR
         # 
@@ -102,12 +106,50 @@ jobs:
         - name: '@Salesforce/plugin-code-analyzer run all default rule'
           run: |
               sf code-analyzer run --rule-selector pmd --rule-selector eslint --target 'changed-sources/**/*' --output-file 'pmdScanResults.sarif.json'
-              
-        # It is not possible to upload a sarif file in a private repository, is is only possible to upldate .csv or .json files.
+        
+        # DEBUG #
+        # display full directory tree for debug
+        - name: 'Display complete directory tree'
+          run: |
+            sudo apt-get install -y tree
+            tree -L 10 /home/runner/work/
+
+        # display sarif file content for debug
+        - name: 'Display SARIF file content'
+          run: |
+              cat pmdScanResults.sarif.json
+
+        # DEBUG #
+
+        # Uploading a sarif without any runs (a run is created when at least one issue is found), we must not update sarif file with no runs
+        - name: 'Check SARIF file'
+          id: setUploadSarif 
+          run: | 
+              if jq '.runs | length == 0' pmdScanResults.sarif.json > /dev/null; then
+                echo 'Sarif file has no runs, will not be uploaded'
+                echo "uploadSarif=false" >> $GITHUB_OUTPUT
+              else
+                echo "uploadSarif=true" >> $GITHUB_OUTPUT
+                echo 'Sarif file has runs, will be uploaded' 
+              fi
+
         - name: Upload SARIF file
+          if: steps.setUploadSarif.outputs.uploadSarif == 'true'
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: pmdScanResults.sarif.json
+
+        # generate flow scan report in text format
+        - name: 'Run Flow Scanner on changed flows'
+          run: |
+              sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_ansiResult.txt || true
+              sed 's/\x1b\[[0-9;]*m//g' lightning-flow-scan_ansiResult.txt > lightning-flow-scan_result_cleanResult.txt
+              echo 'cat clean file => ' && cat lightning-flow-scan_result_cleanResult.txt
+
+        # import the flow scan report as a PR comment
+        - name: 'Comment flow scan result on PR'
+          run: |
+              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "$(cat lightning-flow-scan_result_cleanResult.txt)"
 
         # We do a check-only deploy and we only run the tests specified in the PR 
         # Now we validate every rules of the PMD and EsLint engines
@@ -133,7 +175,6 @@ jobs:
 #   run: |
 #       echo "Changed sources directory content:"
 #       ls -R changed-sources/
-
 
 # display full directory tree for debug
 # - name: 'Display complete directory tree'
