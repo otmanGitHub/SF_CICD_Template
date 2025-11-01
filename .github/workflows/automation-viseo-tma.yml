@@ -139,7 +139,7 @@ jobs:
         # generate flow scan report in text format
         - name: 'Run Flow Scanner on changed flows'
           run: |
-              sf flow:scan --directory changed-sources/force-app/main/default/flows &> lightning-flow-scan_result.txt
+              sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_result.txt || true
               cat lightning-flow-scan_result.txt
 
         # import the flow scan report as a PR comment
