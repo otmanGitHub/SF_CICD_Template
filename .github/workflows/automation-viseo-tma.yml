@@ -42,12 +42,13 @@ jobs:
         # Installing Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
         # Installing gh is required to be able to post comments on the PR
+        # Installing jq is required to parse sarif json file content
         - name: 'Installing java'
           run: |
             sudo apt-get update
             sudo apt install default-jdk
-            sudo apt-get install gh
-
+            sudo apt-get install gh=2.51.0
+            sudo apt-get install -y jq=1.7.1
 
         # Install required plugins
         - name: 'Installing SFDX scanner'
@@ -120,8 +121,18 @@ jobs:
 
         # DEBUG #
 
+        # Uploading a sarif without any runs (a run is created when at least one issue is found), we must not update sarif file with no runs
+        - name: 'Check SARIF file'
+          id: setUploadSarif 
+          run: | 
+              if jq '.runs | length == 0' pmdScanResults.sarif.json; then
+                echo "uploadSarif= false" >> $GITHUB_OUTPUT
+              else
+                echo "uploadSarif= true" >> $GITHUB_OUTPUT
+              fi
+
         - name: Upload SARIF file
-          if: "!contains(fromJson(file('pmdScanResults.sarif.json')).runs, [])"
+          if: "${{ steps.setUploadSarif.outputs.uploadSarif }} == 'true'"
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: pmdScanResults.sarif.json
