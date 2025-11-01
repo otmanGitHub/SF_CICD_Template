@@ -41,17 +41,16 @@ jobs:
 
         # Installing Java is required to run the SFDX code analyzer
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
-        # Installing gh is required to be able to post comments on the PR
+        # Installing gh is NOT required to be able to post comments on the PR (preinstalled on github runners)
         # Installing jq is required to parse sarif json file content
-        - name: 'Installing java'
+        - name: 'Installing apts package (jdk, gh, jq)'
           run: |
             sudo apt-get update
             sudo apt install default-jdk
-            sudo apt-get install gh=2.51.0
             sudo apt-get install -y jq=1.7.1
 
         # Install required plugins
-        - name: 'Installing SFDX scanner'
+        - name: 'Installing SF plugings: code-analyzer, sfdx-git-delta, lightning-flow-scanner'
           run: |
             echo y | sf plugins install @salesforce/plugin-code-analyzer@5.5.0
             echo y | sf plugins install sfdx-git-delta@6.22.0
