@@ -144,7 +144,7 @@ jobs:
           run: |
               sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_ansiResult.txt || true
               sed 's/\x1b\[[0-9;]*m//g' lightning-flow-scan_ansiResult.txt > lightning-flow-scan_result_cleanResult.txt
-              echo 'cat clean file => ' && cat lightning-flow-scan_result_clean.txt
+              echo 'cat clean file => ' && cat lightning-flow-scan_result_cleanResult.txt
 
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
