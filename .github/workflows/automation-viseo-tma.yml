@@ -43,7 +43,7 @@ jobs:
         # default-jdk is the version corresponding to the Ubuntu version (e.g. Ubuntu 24.04 -> OpenJDK 21)
         # Installing gh is NOT required to be able to post comments on the PR (preinstalled on github runners)
         # Installing jq is required to parse sarif json file content
-        - name: 'Installing apts package (jdk, gh, jq)'
+        - name: 'Installing apts package (jdk, jq)'
           run: |
             sudo apt-get update
             sudo apt install default-jdk
@@ -124,7 +124,7 @@ jobs:
         - name: 'Check SARIF file'
           id: setUploadSarif 
           run: | 
-              if jq -e '.runs | length == 0' pmdScanResults.sarif.json; then
+              if jq '.runs | length == 0' pmdScanResults.sarif.json > /dev/null; then
                 echo 'Sarif file has no runs, will not be uploaded'
                 echo "uploadSarif=false" >> $GITHUB_OUTPUT
               else
