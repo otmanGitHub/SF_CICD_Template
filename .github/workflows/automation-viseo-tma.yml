@@ -47,7 +47,7 @@ jobs:
           run: |
             sudo apt-get update
             sudo apt install default-jdk
-            sudo apt-get install -y jq=1.7.1
+            sudo apt-get install -y jq=1.7.1-3ubuntu0.24.04.1
 
         # Install required plugins
         - name: 'Installing SF plugings: code-analyzer, sfdx-git-delta, lightning-flow-scanner'
