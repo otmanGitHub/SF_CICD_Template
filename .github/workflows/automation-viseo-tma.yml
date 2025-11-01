@@ -15,10 +15,13 @@ on:
 jobs:
   validate-pmd:
         # Add write permission to security-events to be able to upload sarif file
+        # contents read permission is required to read the repository code
+        # security-events write permission is required to upload sarif file
+        # pull-requests write permission is required to post comments on the PR
         permissions:
           contents: read
           security-events: write
-          actions: read
+          pull-requests: write
 
         runs-on: ubuntu-24.04
         if: ${{ github.actor != 'dependabot[bot]' }}
