@@ -10,7 +10,7 @@ on:
         # branches: [ feature/** ]
         # Trigger the pipeline only when changes are made in specific paths
         paths:
-        - 'force-app/**'
+        # - 'force-app/**'
 
 jobs:
     github-ci-validation:
