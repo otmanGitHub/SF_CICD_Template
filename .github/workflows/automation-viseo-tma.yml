@@ -10,7 +10,7 @@ on:
         # branches: [ feature/** ]
         # Trigger the pipeline only when changes are made in specific paths
         paths:
-        # - 'force-app/**'
+        - 'force-app/**'
 
 jobs:
     github-ci-validation:
@@ -107,20 +107,6 @@ jobs:
           run: |
               sf code-analyzer run --rule-selector pmd --rule-selector eslint --target 'changed-sources/**/*' --output-file 'pmdScanResults.sarif.json'
         
-        # DEBUG #
-        # display full directory tree for debug
-        - name: 'Display complete directory tree'
-          run: |
-            sudo apt-get install -y tree
-            tree -L 10 /home/runner/work/
-
-        # display sarif file content for debug
-        - name: 'Display SARIF file content'
-          run: |
-              cat pmdScanResults.sarif.json
-
-        # DEBUG #
-
         # Uploading a sarif without any runs (a run is created when at least one issue is found), we must not update sarif file with no runs
         - name: 'Check SARIF file'
           id: setUploadSarif
@@ -163,10 +149,6 @@ jobs:
         - name: 'Check conf and tests on changed sources folder'
           run: |
               sf project deploy start --source-dir changed-sources/force-app --dry-run --test-level RunLocalTests
-
-        # /! Not implemented yet !\
-        # - name: 'Deploy destructive changes (if any)' => Not implemented yet
-        #   run: sfdx force:mdapi:deploy -d "changed-sources/destructiveChanges" --checkonly --ignorewarnings 
 
 #_________________________________________HELP DEBUG COMMANDS _________________________________________________
 
