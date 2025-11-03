@@ -3,7 +3,7 @@
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <name>Assign_Stage_1</name>
+        <name>Assign_stage_1</name>
         <label>Assign Stage 1</label>
         <locationX>176</locationX>
         <locationY>220</locationY>
@@ -674,7 +674,7 @@
         <locationX>50</locationX>
         <locationY>50</locationY>
         <connector>
-            <targetReference>Assign_Stage_1</targetReference>
+            <targetReference>Assign_stage_1</targetReference>
         </connector>
     </start>
     <status>Active</status>

@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""
+Format Lightning Flow Scanner results into a Markdown table
+"""
+
+import sys
+import re
+from pathlib import Path
+
+def parse_flow_scanner_results(input_file):
+    """Parse the Flow Scanner text output and return structured data"""
+
+    with open(input_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Handle empty or "no flows" case
+    if not content.strip() or 'No flows found' in content or 'Total: 0 Results' in content:
+        return [], {'error': 0, 'warning': 0, 'note': 0}
+
+    flows = []
+    current_flow = None
+    summary = {'error': 0, 'warning': 0, 'note': 0}
+
+    lines = content.split('\n')
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Match flow header: === Flow: name (file.flow-meta.xml) (X results)
+        flow_match = re.match(r'^===\s+Flow:\s+(.+?)\s+\((.+?)\)\s+\((\d+)\s+results?\)$', line)
+        if flow_match:
+            # Save previous flow if exists
+            if current_flow:
+                flows.append(current_flow)
+
+            current_flow = {
+                'name': flow_match.group(1),
+                'file': flow_match.group(2),
+                'result_count': int(flow_match.group(3)),
+                'type': '',
+                'violations': []
+            }
+            i += 1
+            continue
+
+        # Match flow type: Type: FlowType
+        type_match = re.match(r'^Type:\s+(.+)$', line)
+        if type_match and current_flow:
+            current_flow['type'] = type_match.group(1)
+            i += 1
+            continue
+
+        # Skip header line
+        if re.match(r'^Rule\s+Type\s+Name\s+Severity', line):
+            i += 1
+            continue
+
+        # Match violation line: Rule Type Name Severity
+        # Handles multi-word rules by taking everything before the last 3 tokens
+        violation_match = re.match(r'^(.+?)\s+(\w+)\s+([\w_]+)\s+(error|warning|note)$', line)
+        if violation_match and current_flow:
+            current_flow['violations'].append({
+                'rule': violation_match.group(1).strip(),
+                'type': violation_match.group(2),
+                'name': violation_match.group(3),
+                'severity': violation_match.group(4)
+            })
+            i += 1
+            continue
+
+        # Match summary counts
+        error_match = re.match(r'^[•*]?\s*error:\s+(\d+)', line)
+        if error_match:
+            summary['error'] = int(error_match.group(1))
+
+        warning_match = re.match(r'^[•*]?\s*warning:\s+(\d+)', line)
+        if warning_match:
+            summary['warning'] = int(warning_match.group(1))
+
+        note_match = re.match(r'^[•*]?\s*note:\s+(\d+)', line)
+        if note_match:
+            summary['note'] = int(note_match.group(1))
+
+        i += 1
+
+    # Add last flow
+    if current_flow:
+        flows.append(current_flow)
+
+    # Fallback: If summary is still 0 but we have violations, count them
+    if summary['error'] == 0 and summary['warning'] == 0 and summary['note'] == 0:
+        for flow in flows:
+            for violation in flow.get('violations', []):
+                severity = violation.get('severity', 'error')
+                if severity in summary:
+                    summary[severity] += 1
+
+    return flows, summary
+
+
+def generate_markdown(flows, summary):
+    """Generate Markdown formatted output"""
+
+    severity_icons = {
+        'error': '🔴',
+        'warning': '🟡',
+        'note': '🔵'
+    }
+
+    total_issues = summary['error'] + summary['warning'] + summary['note']
+
+    # Build markdown
+    md = []
+    md.append('## 🔍 Flow Scanner Results\n')
+
+    # If no flows found, check if input file had content
+    if len(flows) == 0:
+        md.append('_No flow files found in changed sources_\n')
+        return '\n'.join(md)
+
+    # Always show summary, even if 0 issues
+    if len(flows) > 0:
+        md.append(f'**Flows scanned:** {len(flows)}  \n')
+        md.append(f'**Total issues:** {total_issues}\n')
+        md.append('---\n')
+
+    # Add details for each flow
+    for flow in flows:
+        md.append(f'### 📋 {flow["name"]}\n')
+        md.append(f'**File:** `{flow["file"]}`  ')
+        md.append(f'**Type:** {flow["type"]}  ')
+        md.append(f'**Issues:** {flow["result_count"]}\n')
+
+        if flow['violations']:
+            md.append('| Severity | Rule | Type | Element Name |')
+            md.append('|----------|------|------|--------------|')
+
+            for v in flow['violations']:
+                icon = severity_icons.get(v['severity'], '⚪')
+                md.append(f'| {icon} {v["severity"]} | {v["rule"]} | `{v["type"]}` | `{v["name"]}` |')
+
+            md.append('')  # Empty line after table
+
+    # Add summary
+    md.append('---\n')
+    md.append('### 📊 Summary\n')
+    md.append('| Severity | Count |')
+    md.append('|----------|-------|')
+    md.append(f'| 🔴 Errors | **{summary["error"]}** |')
+    md.append(f'| 🟡 Warnings | {summary["warning"]} |')
+    md.append(f'| 🔵 Notes | {summary["note"]} |')
+    md.append(f'| **Total** | **{total_issues}** |')
+    md.append('')
+    md.append('---')
+    md.append('*Generated by Lightning Flow Scanner*')
+
+    return '\n'.join(md)
+
+
+def main():
+    input_file = 'lightning-flow-scan_result_cleanResult.txt'
+    output_file = 'flow-scan-comment.md'
+
+    if len(sys.argv) > 1:
+        input_file = sys.argv[1]
+    if len(sys.argv) > 2:
+        output_file = sys.argv[2]
+
+    if not Path(input_file).exists():
+        print(f'Error: {input_file} not found')
+        sys.exit(1)
+
+    # Read raw content for fallback
+    with open(input_file, 'r', encoding='utf-8') as f:
+        raw_content = f.read()
+
+    # Parse results
+    flows, summary = parse_flow_scanner_results(input_file)
+
+    # If parsing failed but file has content, use raw output
+    total_issues = summary['error'] + summary['warning'] + summary['note']
+    if len(flows) == 0 and raw_content.strip() and 'Flow:' in raw_content:
+        # Parsing failed, fallback to raw content wrapped in code block
+        markdown = f"""## 🔍 Flow Scanner Results
+
+⚠️ _Showing raw output (formatting unavailable)_
+
+```
+{raw_content}
+```
+
+---
+*Raw output from Lightning Flow Scanner*
+"""
+    else:
+        # Generate formatted markdown
+        markdown = generate_markdown(flows, summary)
+
+    # Write output
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(markdown)
+
+    print(f'✅ Flow scan results formatted successfully to {output_file}')
+
+    # Also print to stdout for debugging
+    print('\n' + markdown)
+
+
+if __name__ == '__main__':
+    main()
