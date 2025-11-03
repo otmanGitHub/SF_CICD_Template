@@ -23,5 +23,6 @@ private class AccountControllerTest {
         // No error message to trigger PMD ApexAssertionsShouldIncludeMessage medium rule
         Assert.areEqual(1, accounts.size());
         Assert.areEqual('Controller Test Account', accounts[0].Name);
+        
     }
 }
