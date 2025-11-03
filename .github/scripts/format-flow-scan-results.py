@@ -106,16 +106,16 @@ def generate_markdown(flows, summary):
     md = []
     md.append('## 🔍 Flow Scanner Results\n')
 
+    # If no flows found, check if input file had content
     if len(flows) == 0:
-        md.append('ℹ️ **No flows to scan** - No flow metadata files were found in the changed sources.\n')
+        md.append('_No flow files found in changed sources_\n')
         return '\n'.join(md)
 
-    if total_issues == 0:
-        md.append('✅ **No issues found!** All flows are clean.\n')
-        return '\n'.join(md)
-
-    md.append(f'**Total:** {total_issues} issue(s) found in {len(flows)} flow(s)\n')
-    md.append('---\n')
+    # Always show summary, even if 0 issues
+    if len(flows) > 0:
+        md.append(f'**Flows scanned:** {len(flows)}  \n')
+        md.append(f'**Total issues:** {total_issues}\n')
+        md.append('---\n')
 
     # Add details for each flow
     for flow in flows:
@@ -163,11 +163,31 @@ def main():
         print(f'Error: {input_file} not found')
         sys.exit(1)
 
+    # Read raw content for fallback
+    with open(input_file, 'r', encoding='utf-8') as f:
+        raw_content = f.read()
+
     # Parse results
     flows, summary = parse_flow_scanner_results(input_file)
 
-    # Generate markdown
-    markdown = generate_markdown(flows, summary)
+    # If parsing failed but file has content, use raw output
+    total_issues = summary['error'] + summary['warning'] + summary['note']
+    if len(flows) == 0 and raw_content.strip() and 'Flow:' in raw_content:
+        # Parsing failed, fallback to raw content wrapped in code block
+        markdown = f"""## 🔍 Flow Scanner Results
+
+⚠️ _Showing raw output (formatting unavailable)_
+
+```
+{raw_content}
+```
+
+---
+*Raw output from Lightning Flow Scanner*
+"""
+    else:
+        # Generate formatted markdown
+        markdown = generate_markdown(flows, summary)
 
     # Write output
     with open(output_file, 'w', encoding='utf-8') as f:
