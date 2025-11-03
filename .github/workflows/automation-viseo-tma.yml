@@ -144,12 +144,19 @@ jobs:
           run: |
               sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_ansiResult.txt || true
               sed 's/\x1b\[[0-9;]*m//g' lightning-flow-scan_ansiResult.txt > lightning-flow-scan_result_cleanResult.txt
-              echo 'cat clean file => ' && cat lightning-flow-scan_result_cleanResult.txt
+              echo 'Flow Scanner output (raw):' && cat lightning-flow-scan_result_cleanResult.txt
+
+        # Format flow scan results as Markdown table
+        - name: 'Format Flow Scanner results'
+          run: |
+              python3 .github/scripts/format-flow-scan-results.py lightning-flow-scan_result_cleanResult.txt flow-scan-comment.md
+              echo 'Formatted output:' && cat flow-scan-comment.md
 
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
           run: |
-              gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "$(cat lightning-flow-scan_result_cleanResult.txt)"
+              gh pr comment ${{ github.event.pull_request.number }} --edit-last --body-file flow-scan-comment.md || \
+              gh pr comment ${{ github.event.pull_request.number }} --body-file flow-scan-comment.md
 
         # We do a check-only deploy and we only run the tests specified in the PR 
         # Now we validate every rules of the PMD and EsLint engines
