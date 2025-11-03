@@ -125,14 +125,21 @@ jobs:
           with:
             sarif_file: pmdScanResults.sarif.json
 
-        # display full directory tree for debug
-        - name: 'Display complete directory tree'
+        # Check if flows directory exists in changed sources
+        - name: 'Check for modified flows'
+          id: checkFlows
           run: |
-            sudo apt-get install -y tree
-            tree -L 10 /home/runner/work/
+            if [ -d "changed-sources/force-app/main/default/flows" ] && [ "$(ls -A changed-sources/force-app/main/default/flows)" ]; then
+              echo "flows_exist=true" >> $GITHUB_OUTPUT
+              echo "✅ Flow files detected in changed sources"
+            else
+              echo "flows_exist=false" >> $GITHUB_OUTPUT
+              echo "ℹ️ No flow files found in changed sources"
+            fi
 
         # generate flow scan report in text format
         - name: 'Run Flow Scanner on changed flows'
+          if: steps.checkFlows.outputs.flows_exist == 'true'
           run: |
               sf flow:scan --directory changed-sources/force-app/main/default/flows > lightning-flow-scan_ansiResult.txt || true
               sed 's/\x1b\[[0-9;]*m//g' lightning-flow-scan_ansiResult.txt > lightning-flow-scan_result_cleanResult.txt
@@ -140,12 +147,14 @@ jobs:
 
         # Format flow scan results as Markdown table
         - name: 'Format Flow Scanner results'
+          if: steps.checkFlows.outputs.flows_exist == 'true'
           run: |
               python3 .github/scripts/format-flow-scan-results.py lightning-flow-scan_result_cleanResult.txt flow-scan-comment.md
               echo 'Formatted output:' && cat flow-scan-comment.md
 
         # import the flow scan report as a PR comment
         - name: 'Comment flow scan result on PR'
+          if: steps.checkFlows.outputs.flows_exist == 'true'
           run: |
               gh pr comment ${{ github.event.pull_request.number }} --edit-last --body-file flow-scan-comment.md || \
               gh pr comment ${{ github.event.pull_request.number }} --body-file flow-scan-comment.md
