@@ -125,6 +125,12 @@ jobs:
           with:
             sarif_file: pmdScanResults.sarif.json
 
+        # display full directory tree for debug
+        - name: 'Display complete directory tree'
+          run: |
+            sudo apt-get install -y tree
+            tree -L 10 /home/runner/work/
+
         # generate flow scan report in text format
         - name: 'Run Flow Scanner on changed flows'
           run: |
