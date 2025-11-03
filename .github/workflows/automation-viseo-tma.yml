@@ -123,14 +123,14 @@ jobs:
 
         # Uploading a sarif without any runs (a run is created when at least one issue is found), we must not update sarif file with no runs
         - name: 'Check SARIF file'
-          id: setUploadSarif 
-          run: | 
-              if jq '.runs | length == 0' pmdScanResults.sarif.json > /dev/null; then
+          id: setUploadSarif
+          run: |
+              if jq -e '.runs | length == 0' pmdScanResults.sarif.json > /dev/null; then
                 echo 'Sarif file has no runs, will not be uploaded'
                 echo "uploadSarif=false" >> $GITHUB_OUTPUT
               else
                 echo "uploadSarif=true" >> $GITHUB_OUTPUT
-                echo 'Sarif file has runs, will be uploaded' 
+                echo 'Sarif file has runs, will be uploaded'
               fi
 
         - name: Upload SARIF file
