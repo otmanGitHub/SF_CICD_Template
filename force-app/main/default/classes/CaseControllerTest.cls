@@ -37,6 +37,5 @@ private class CaseControllerTest {
             Assert.areEqual(1, cases.size(), 'Should return 1 case via controller');
             Assert.areEqual('Controller Test Case', cases[0].Subject, 'Case subject should match');
         }
-
     }
 }
