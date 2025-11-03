@@ -9,6 +9,6 @@ public with sharing class CaseController {
      */
     @AuraEnabled(cacheable=true)
     public static List<Case> getAllCases() {
-        return CaseServiceManager.getAllCases(); ceci est un commentaire sans balise commentaire
+        return CaseServiceManager.getAllCases();
     }
 }
