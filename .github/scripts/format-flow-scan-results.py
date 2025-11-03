@@ -88,6 +88,14 @@ def parse_flow_scanner_results(input_file):
     if current_flow:
         flows.append(current_flow)
 
+    # Fallback: If summary is still 0 but we have violations, count them
+    if summary['error'] == 0 and summary['warning'] == 0 and summary['note'] == 0:
+        for flow in flows:
+            for violation in flow.get('violations', []):
+                severity = violation.get('severity', 'error')
+                if severity in summary:
+                    summary[severity] += 1
+
     return flows, summary
 
 
